@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINI MEDIA PLAYER</title>
+    <!-- Memuat Tailwind CSS dari CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menggunakan font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Mengatur font Inter secara global */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Latar belakang terbagi 50% Merah dan 50% Putih secara vertikal */
+            background: linear-gradient(to right, #ef4444 50%, #ffffff 50%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Kelas untuk membuat teks tidak dapat disalin (user-select: none) */
+        .unselectable {
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10+ */
+            user-select: none; /* Standard syntax */
+        }
+        
+        /* Mengatur tampilan elemen media */
+        audio, video {
+            max-width: 100%;
+            height: auto;
+            min-height: 50px; /* FIX: Tambahkan tinggi minimum untuk memastikan kontrol audio terlihat */
+            border-radius: 0.5rem; /* Sudut membulat */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Mengatur agar tombol file input tersembunyi */
+        .file-input-hidden {
+            display: none;
+        }
+
+        /* Kontainer gambar: memastikan aspek rasio persegi dan membatasi ukuran */
+        #image-frame {
+            background-color: #e5e7eb; /* Abu-abu terang sebagai latar belakang frame kosong */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px; /* Tinggi minimum untuk estetika */
+            width: 100%;
+            max-width: 80vh; /* Batasi lebar agar tetap proporsional di lanskap */
+            margin: 0 auto;
+            border: 2px dashed #9ca3af;
+            border-radius: 1rem;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="unselectable p-4">
+    <div class="flex-grow flex flex-col items-center justify-center">
+        <!-- Judul Website -->
+        <header class="mb-8">
+            <h1 class="text-4xl font-extrabold text-gray-800">MINI MEDIA PLAYER</h1>
+        </header>
+
+        <!-- Container Menu -->
+        <nav class="flex space-x-4 p-2 bg-white/70 rounded-xl shadow-lg mb-8">
+            <button id="btn-audio" onclick="setView('audio')" class="p-3 w-32 rounded-lg font-semibold transition-all duration-200 shadow-md text-white bg-red-600 hover:bg-red-700">Audio</button>
+            <button id="btn-video" onclick="setView('video')" class="p-3 w-32 rounded-lg font-semibold transition-all duration-200 shadow-md text-gray-800 bg-gray-200 hover:bg-gray-300">Video</button>
+            <button id="btn-image" onclick="setView('image')" class="p-3 w-32 rounded-lg font-semibold transition-all duration-200 shadow-md text-gray-800 bg-gray-200 hover:bg-gray-300">Foto</button>
+        </nav>
+
+        <!-- Area Konten Pemutar Media -->
+        <main class="w-full max-w-4xl p-6 bg-white rounded-2xl shadow-2xl transition-all duration-300">
+            <!-- Tempat Input File Tersembunyi -->
+            <input type="file" id="file-input-audio" class="file-input-hidden" accept="audio/*" onchange="loadMedia('audio')">
+            <input type="file" id="file-input-video" class="file-input-hidden" accept="video/*" onchange="loadMedia('video')">
+            <input type="file" id="file-input-image" class="file-input-hidden" accept="image/*" onchange="loadMedia('image')">
+
+            <!-- Konten Audio -->
+            <div id="view-audio" class="hidden flex flex-col items-center space-y-4">
+                <p class="text-lg font-medium text-gray-700 truncate w-full text-center" id="audio-file-name">Nama File : - </p>
+                <button onclick="document.getElementById('file-input-audio').click()" class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-150 shadow-lg">Buka File Audio</button>
+                <audio id="audio-player" controls class="w-full"></audio>
+            </div>
+
+            <!-- Konten Video -->
+            <div id="view-video" class="hidden flex flex-col items-center space-y-4">
+                <p class="text-lg font-medium text-gray-700 truncate w-full text-center" id="video-file-name">Nama File : - </p>
+                <button onclick="document.getElementById('file-input-video').click()" class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-150 shadow-lg">Buka File Video</button>
+                <video id="video-player" controls class="w-full aspect-video"></video>
+            </div>
+
+            <!-- Konten Gambar -->
+            <div id="view-image" class="hidden flex flex-col items-center space-y-4">
+                <p class="text-lg font-medium text-gray-700 truncate w-full text-center" id="image-file-name">Nama File : -</p>
+                <button onclick="document.getElementById('file-input-image').click()" class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-150 shadow-lg">Buka File Gambar</button>
+                
+                <!-- Frame Gambar 3200x3200 (Dibuat Responsif) -->
+                <div id="image-frame" class="w-full max-w-lg aspect-square lg:max-w-4xl">
+                    <img id="image-display" src="https://placehold.co/2400x2400/CCCCCC/666666?text=Frame+Gambar" 
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                         alt="Pratinjau Gambar" class="hidden max-w-full max-h-full object-contain rounded-lg">
+                    <span id="image-placeholder-text" class="text-gray-500 text-xl font-medium absolute">3200x3200 Frame Gambar</span>
+                </div>
+            </div>
+
+            <!-- Pesan Default Saat Aplikasi Pertama Dibuka -->
+            <div id="view-default" class="flex flex-col items-center justify-center p-12 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mb-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm6 9a1 1 0 11-2 0 1 1 0 012 0zm3-1a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 11-2 0 1 1 0 012 0zm3 0a1 1 0 100-2 1 1 0 000 2z" />
+                </svg>
+                <h2 class="text-2xl font-bold text-gray-800">Selamat Datang di Mini Media Player</h2>
+                <p class="mt-2 text-gray-600">Silakan pilih salah satu menu di atas untuk mulai memutar media lokal Anda.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer Copyright -->
+    <footer class="mt-8 py-3 text-center bg-white/70 shadow-inner">
+        <p class="text-sm font-semibold text-black unselectable">@Copyright 2025 - JMC Media All Rights Reserved</p>
+    </footer>
+
+    <script>
+        // State awal
+        let currentView = 'default';
+        const views = {
+            'audio': 'view-audio',
+            'video': 'view-video',
+            'image': 'view-image',
+            'default': 'view-default'
+        };
+
+        const buttons = {
+            'audio': 'btn-audio',
+            'video': 'btn-video',
+            'image': 'btn-image'
+        };
+
+        // Fungsi untuk mengganti tampilan
+        function setView(viewName) {
+            // Sembunyikan semua tampilan dan atur tombol ke non-aktif
+            Object.keys(views).forEach(key => {
+                const viewElement = document.getElementById(views[key]);
+                if (viewElement) {
+                    viewElement.classList.add('hidden');
+                }
+            });
+            Object.keys(buttons).forEach(key => {
+                const btnElement = document.getElementById(buttons[key]);
+                if (btnElement) {
+                    btnElement.classList.remove('bg-red-600', 'hover:bg-red-700', 'text-white');
+                    btnElement.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-800');
+                }
+            });
+
+            // Tampilkan tampilan yang dipilih dan aktifkan tombol
+            const newViewElement = document.getElementById(views[viewName]);
+            if (newViewElement) {
+                newViewElement.classList.remove('hidden');
+                currentView = viewName;
+            }
+
+            const newBtnElement = document.getElementById(buttons[viewName]);
+            if (newBtnElement) {
+                newBtnElement.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-800');
+                newBtnElement.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
+            }
+        }
+
+        // Fungsi untuk memuat media dari file lokal
+        function loadMedia(type) {
+            const input = document.getElementById(`file-input-${type}`);
+            const file = input.files[0];
+
+            if (file) {
+                const url = URL.createObjectURL(file);
+                
+                // Update nama file
+                document.getElementById(`${type}-file-name`).textContent = `Nama File: ${file.name}`;
+
+                // Logika pemuatan berdasarkan tipe
+                if (type === 'audio') {
+                    const player = document.getElementById('audio-player');
+                    player.src = url;
+                    player.load(); // Memuat ulang sumber audio
+                } else if (type === 'video') {
+                    const player = document.getElementById('video-player');
+                    player.src = url;
+                    player.load(); // Memuat ulang sumber video
+                } else if (type === 'image') {
+                    const img = document.getElementById('image-display');
+                    const placeholder = document.getElementById('image-placeholder-text');
+                    
+                    // Sembunyikan placeholder, tampilkan gambar
+                    placeholder.classList.add('hidden');
+                    img.src = url;
+                    img.classList.remove('hidden');
+                    
+                    // Pastikan kontainer gambar menyesuaikan
+                    const frame = document.getElementById('image-frame');
+                    frame.classList.remove('border-dashed'); // Hapus garis putus-putus
+                }
+            }
+        }
+
+        // Inisialisasi tampilan awal saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            setView('audio'); // Set default ke Audio
+        });
+    </script>
+</body>
+</html>
+
